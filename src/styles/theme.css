@@ -242,11 +242,11 @@
   --spacing-container-max: 1400px;
   --spacing-edge-margin-mobile: 1rem;
   --spacing-stack-gap: 1.5rem;
-  --font-body-md: "Geist";
-  --font-headline-lg-mobile: "Geist";
-  --font-display-xl: "Geist";
-  --font-headline-lg: "Geist";
-  --font-label-mono: "JetBrains Mono";
+  --font-body-md: "Inter", sans-serif;
+  --font-headline-lg-mobile: "Outfit", sans-serif;
+  --font-display-xl: "Outfit", sans-serif;
+  --font-headline-lg: "Outfit", sans-serif;
+  --font-label-mono: "JetBrains Mono", monospace;
 
   --text-body-md: 1.125rem;
   --text-body-md--line-height: 1.65;

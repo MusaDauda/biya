@@ -18,37 +18,37 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
   }, [userId]);
 
   return (
-    <div className="bg-canvas-white text-charcoal-ink font-body-md antialiased overflow-x-hidden w-full min-h-screen">
+<div className="bg-canvas-white text-charcoal-ink font-body-md antialiased overflow-x-hidden w-full min-h-screen">
       <nav className="sticky top-0 w-full z-50 backdrop-blur-md bg-background/80 border-b border-whisper-border">
-<div className="flex justify-between items-center h-20 px-edge-margin-desktop max-w-container-max mx-auto">
-<div className="flex items-center gap-3">
+<div className="flex justify-between items-center h-20 px-edge-margin-mobile md:px-edge-margin-desktop max-w-container-max mx-auto">
+<div className="flex items-center gap-2 md:gap-3">
   <img src="/logo.png" alt="Biya Logo" className="h-8 w-auto object-contain" />
-  <span className="font-headline-lg text-headline-lg tracking-tighter text-primary font-bold">Biya</span>
+  <span className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg tracking-tighter text-primary font-bold">Biya</span>
 </div>
 <div className="hidden md:flex gap-12">
 <a className="text-secondary font-bold border-b-2 border-secondary font-body-md text-body-md" href="#">Features</a>
 <a className="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md" href="#">Security</a>
 <a className="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md" href="#">Campus</a>
 </div>
-<div className="flex items-center gap-6">
+<div className="flex items-center gap-3 md:gap-6">
 {profile ? (
-  <button onClick={() => onLaunch(profile.type)} className="flex items-center gap-2 bg-surface-container-high px-5 py-2.5 rounded-full hover:bg-surface-variant transition-colors border border-whisper-border">
+  <button onClick={() => onLaunch(profile.type)} className="flex items-center gap-2 bg-surface-container-high px-4 md:px-5 py-2 md:py-2.5 rounded-full hover:bg-surface-variant transition-colors border border-whisper-border">
     <div className="bg-secondary text-on-secondary rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
       {profile.name.charAt(0).toUpperCase()}
     </div>
-    <span className="font-body-md font-bold text-sm">{profile.name.split(' ')[0]}</span>
+    <span className="font-body-md font-bold text-sm hidden sm:inline-block">{profile.name.split(' ')[0]}</span>
   </button>
 ) : (
   <>
-    <button className="text-on-surface-variant hover:opacity-80 transition-opacity font-body-md text-body-md" onClick={() => onLaunch("vendor")}>Sign In</button>
-    <button className="bg-primary text-on-primary px-8 py-3 rounded-full hover:opacity-90 transition-all active:scale-[0.98] font-body-md text-body-md" onClick={() => onLaunch("student")}>Get Started</button>
+    <button className="hidden sm:block text-on-surface-variant hover:opacity-80 transition-opacity font-body-md text-body-md" onClick={() => onLaunch("vendor")}>Sign In</button>
+    <button className="bg-primary text-on-primary px-5 md:px-8 py-2.5 md:py-3 rounded-full hover:opacity-90 transition-all active:scale-[0.98] font-body-md text-sm md:text-body-md whitespace-nowrap" onClick={() => onLaunch("student")}>Get Started</button>
   </>
 )}
 </div>
 </div>
 </nav>
 <main>
-<section className="max-w-container-max mx-auto px-edge-margin-desktop pt-24 pb-section-gap grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start ">
+<section className="max-w-container-max mx-auto px-edge-margin-mobile md:px-edge-margin-desktop pt-16 md:pt-24 pb-section-gap grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start ">
 <div className="lg:col-span-8">
 <span className="inline-block px-4 py-1 rounded-full border border-whisper-border text-label-mono font-label-mono uppercase mb-8 tracking-widest text-secondary">Revolutionizing Campus Trade at ABU</span>
 <h1 className="font-display-xl text-display-xl text-charcoal-ink leading-none mb-8 font-bold">
@@ -58,10 +58,10 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
                 The borderless financial operating system built exclusively for the Nigerian student. Secure, instant, and institutional-grade security for every cafe meal, handout, and peer-to-peer transfer.
             </p>
 <div className="flex flex-wrap gap-6">
-<button onClick={() => onLaunch("student")} className="bg-secondary text-on-secondary px-10 py-5 rounded-premium text-body-md font-bold hover:bg-on-secondary-fixed-variant transition-all hover:scale-[1.02] active:scale-[0.98] whisper-shadow">
+<button onClick={() => onLaunch("student")} className="bg-secondary text-on-secondary w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 rounded-premium text-body-md font-bold hover:bg-on-secondary-fixed-variant transition-all hover:scale-[1.02] active:scale-[0.98] whisper-shadow">
                     Start Paying Now
                 </button>
-<button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })} className="flex items-center gap-3 px-10 py-5 rounded-premium border border-whisper-border text-body-md font-bold hover:bg-surface-container transition-all">
+<button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })} className="flex justify-center items-center gap-3 w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 rounded-premium border border-whisper-border text-body-md font-bold hover:bg-surface-container transition-all">
 <span className="material-symbols-outlined">play_circle</span>
                     How it works
                 </button>
@@ -77,7 +77,7 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
 </div>
 </section>
 <section id="how-it-works" className="bg-surface pt-section-gap pb-section-gap ">
-<div className="max-w-container-max mx-auto px-edge-margin-desktop">
+<div className="max-w-container-max mx-auto px-edge-margin-mobile md:px-edge-margin-desktop">
 <div className="mb-16 grid grid-cols-1 lg:grid-cols-2 items-end">
 <div>
 <h2 className="font-headline-lg text-headline-lg mb-4">Financial Autonomy</h2>
@@ -120,7 +120,7 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
 </div>
 </section>
 <section className="py-section-gap ">
-<div className="max-w-container-max mx-auto px-edge-margin-desktop space-y-32">
+<div className="max-w-container-max mx-auto px-edge-margin-mobile md:px-edge-margin-desktop space-y-24 md:space-y-32">
 <div className="grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
 <div className="order-2 md:order-1">
 <div className="relative rounded-premium overflow-hidden aspect-video whisper-shadow group">
@@ -172,8 +172,8 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
 </div>
 </div>
 </section>
-<section className="py-section-gap max-w-container-max mx-auto px-edge-margin-desktop ">
-<div className="bg-primary rounded-premium p-16 md:p-24 relative overflow-hidden grid grid-cols-1 md:grid-cols-2 items-center gap-12">
+<section className="py-section-gap max-w-container-max mx-auto px-edge-margin-mobile md:px-edge-margin-desktop ">
+<div className="bg-primary rounded-premium p-8 md:p-24 relative overflow-hidden grid grid-cols-1 md:grid-cols-2 items-center gap-12">
 <div className="relative z-10">
 <h2 className="font-display-xl text-display-xl text-white mb-8">Ready to join the campus elite?</h2>
 <p className="text-white/60 text-body-md mb-12 text-balance">Download Biya today and experience the future of campus trade at ABU. Available on all major platforms.</p>
@@ -201,8 +201,8 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
 </div>
 </section>
 </main>
-<footer className="w-full py-16 bg-canvas-white border-t border-whisper-border">
-<div className="max-w-container-max mx-auto px-edge-margin-desktop grid grid-cols-1 md:grid-cols-2 gap-stack-gap items-start">
+<footer className="w-full py-10 md:py-16 bg-canvas-white border-t border-whisper-border">
+<div className="max-w-container-max mx-auto px-edge-margin-mobile md:px-edge-margin-desktop grid grid-cols-1 md:grid-cols-2 gap-stack-gap items-start">
 <div>
 <div className="font-headline-lg text-headline-lg text-primary mb-6">Biya</div>
 <p className="text-muted-slate max-w-sm mb-8 font-body-md text-body-md">
@@ -234,7 +234,7 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
 </div>
 </div>
 </footer>
-    </div>
+        </div>
   );
 }
 
