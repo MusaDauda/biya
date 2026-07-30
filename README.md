@@ -62,4 +62,4 @@ The database schema definitions are available in `supabase/schema.sql`. You can 
 
 ## License
 
-© 2024 Biya Financial Technologies. All rights reserved. Built for the modern Nigerian campus.
+© 2026 Biya Financial Technologies. All rights reserved. Built for the modern Nigerian campus.

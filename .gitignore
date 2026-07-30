@@ -37,3 +37,4 @@ skills-lock.json
 supabase/.temp/
 docs/*
 guidelines/*
+bugs.md
