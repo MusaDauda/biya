@@ -1,0 +1,273 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #030213;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.0058 264.53);
+  --secondary-foreground: #030213;
+  --muted: #ececf0;
+  --muted-foreground: #717182;
+  --accent: #e9ebef;
+  --accent-foreground: #030213;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: transparent;
+  --input-background: #f3f3f5;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #030213;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /**
+  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  */
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+}
+
+@theme inline {
+  --color-on-secondary-fixed-variant: #673d00;
+  --color-error-container: #ffdad6;
+  --color-pure-surface: #FFFFFF;
+  --color-on-error-container: #93000a;
+  --color-on-tertiary-container: #848687;
+  --color-diffused-shadow: rgba(0,0,0,0.05);
+  --color-tertiary: #020404;
+  --color-secondary: #885200;
+  --color-inverse-primary: #bec4ee;
+  --color-surface-container-high: #eae7eb;
+  --color-on-secondary-container: #663c00;
+  --color-on-tertiary-fixed: #191c1d;
+  --color-on-background: #1b1b1e;
+  --color-canvas-white: #F9FAFB;
+  --color-on-primary-container: #7d83aa;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #fe9d09;
+  --color-surface-container: #f0edf1;
+  --color-inverse-on-surface: #f3f0f4;
+  --color-whisper-border: rgba(226,232,240,0.5);
+  --color-tertiary-fixed-dim: #c5c7c8;
+  --color-primary-fixed: #dde1ff;
+  --color-surface-variant: #e4e1e6;
+  --color-inverse-surface: #303033;
+  --color-secondary-fixed-dim: #ffb869;
+  --color-on-primary-fixed-variant: #3e4568;
+  --color-tertiary-fixed: #e1e3e4;
+  --color-on-surface-variant: #46464e;
+  --color-background: #fbf8fc;
+  --color-primary-fixed-dim: #bec4ee;
+  --color-muted-slate: #94A3B8;
+  --color-on-tertiary: #ffffff;
+  --color-surface: #fbf8fc;
+  --color-steel-secondary: #71717A;
+  --color-error: #ba1a1a;
+  --color-outline: #76767f;
+  --color-tertiary-container: #1b1e1f;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f6f2f7;
+  --color-surface-container-highest: #e4e1e6;
+  --color-on-error: #ffffff;
+  --color-surface-bright: #fbf8fc;
+  --color-charcoal-ink: #18181B;
+  --color-primary-container: #141b3c;
+  --color-surface-dim: #dcd9dd;
+  --color-surface-tint: #565c81;
+  --color-on-tertiary-fixed-variant: #454748;
+  --color-on-primary: #ffffff;
+  --color-on-primary-fixed: #12193a;
+  --color-primary: #000218;
+  --color-outline-variant: #c7c5cf;
+  --color-on-surface: #1b1b1e;
+  --color-secondary-fixed: #ffdcbb;
+  --color-on-secondary-fixed: #2c1700;
+  --radius-premium: 2.5rem;
+  --spacing-edge-margin-desktop: 4rem;
+  --spacing-gutter: 2rem;
+  --spacing-section-gap: clamp(4rem, 10vw, 10rem);
+  --spacing-container-max: 1400px;
+  --spacing-edge-margin-mobile: 1rem;
+  --spacing-stack-gap: 1.5rem;
+  --font-body-md: "Geist";
+  --font-headline-lg-mobile: "Geist";
+  --font-display-xl: "Geist";
+  --font-headline-lg: "Geist";
+  --font-label-mono: "JetBrains Mono";
+
+  --text-body-md: 1.125rem;
+  --text-body-md--line-height: 1.65;
+  --text-body-md--font-weight: 400;
+
+  --text-headline-lg-mobile: 2rem;
+  --text-headline-lg-mobile--line-height: 1.2;
+  --text-headline-lg-mobile--font-weight: 700;
+
+  --text-display-xl: clamp(3rem, 6vw, 5rem);
+  --text-display-xl--line-height: 1.05;
+  --text-display-xl--letter-spacing: -0.04em;
+  --text-display-xl--font-weight: 800;
+
+  --text-headline-lg: 2.5rem;
+  --text-headline-lg--line-height: 1.2;
+  --text-headline-lg--letter-spacing: -0.02em;
+  --text-headline-lg--font-weight: 700;
+
+  --text-label-mono: 0.8125rem;
+  --text-label-mono--line-height: 1.5;
+  --text-label-mono--letter-spacing: 0.05em;
+  --text-label-mono--font-weight: 500;
+}
