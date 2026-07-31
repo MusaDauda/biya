@@ -4,7 +4,7 @@ import { ScanLine, User } from "lucide-react";
 import { biya, font, formatNaira } from "./theme";
 import { supabase } from "../../../lib/supabase";
 
-export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "vendor") => void, userId?: string | null }) {
+export function Landing({ onLaunch, userId }: { onLaunch: (role: "picker" | "student" | "vendor") => void, userId?: string | null }) {
   const [profile, setProfile] = useState<{ name: string, type: "student" | "vendor" } | null>(null);
 
   useEffect(() => {
@@ -40,8 +40,8 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
   </button>
 ) : (
   <>
-    <button className="hidden sm:block text-on-surface-variant hover:opacity-80 transition-opacity font-body-md text-body-md" onClick={() => onLaunch("vendor")}>Sign In</button>
-    <button className="bg-primary text-on-primary px-5 md:px-8 py-2.5 md:py-3 rounded-full hover:opacity-90 transition-all active:scale-[0.98] font-body-md text-sm md:text-body-md whitespace-nowrap" onClick={() => onLaunch("student")}>Get Started</button>
+    <button className="hidden sm:block text-on-surface-variant hover:opacity-80 transition-opacity font-body-md text-body-md" onClick={() => onLaunch("picker")}>Sign In</button>
+    <button className="bg-primary text-on-primary px-5 md:px-8 py-2.5 md:py-3 rounded-full hover:opacity-90 transition-all active:scale-[0.98] font-body-md text-sm md:text-body-md whitespace-nowrap" onClick={() => onLaunch("picker")}>Get Started</button>
   </>
 )}
 </div>
@@ -58,7 +58,7 @@ export function Landing({ onLaunch, userId }: { onLaunch: (role: "student" | "ve
                 The borderless financial operating system built exclusively for the Nigerian student. Secure, instant, and institutional-grade security for every cafe meal, handout, and peer-to-peer transfer.
             </p>
 <div className="flex flex-wrap gap-6">
-<button onClick={() => onLaunch("student")} className="bg-secondary text-on-secondary w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 rounded-premium text-body-md font-bold hover:bg-on-secondary-fixed-variant transition-all hover:scale-[1.02] active:scale-[0.98] whisper-shadow">
+<button onClick={() => onLaunch("picker")} className="bg-secondary text-on-secondary w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 rounded-premium text-body-md font-bold hover:bg-on-secondary-fixed-variant transition-all hover:scale-[1.02] active:scale-[0.98] whisper-shadow">
                     Start Paying Now
                 </button>
 <button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })} className="flex justify-center items-center gap-3 w-full sm:w-auto px-6 md:px-10 py-4 md:py-5 rounded-premium border border-whisper-border text-body-md font-bold hover:bg-surface-container transition-all">
