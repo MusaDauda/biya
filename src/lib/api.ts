@@ -485,7 +485,24 @@ function toQuote(row: any): Quote {
   };
 }
 
+// Nothing on Vercel polls fx_rates in the background the way the standalone
+// `services` process did (see SERVICES_URL above), so a rate written once
+// would age past create_fx_quote's one hour staleness window and every quote
+// after that would be refused. Asking for a refresh here, right before the
+// quote it gates, means freshness never depends on a process staying alive.
+// Best effort: if this fails or times out, create_fx_quote still runs against
+// whatever rate is already on file and refuses on its own terms if that is
+// too old.
+async function ensureFreshRate(): Promise<void> {
+  try {
+    await fetch(`${SERVICES_URL}/fx/refresh`, { method: "POST", signal: AbortSignal.timeout(6000) });
+  } catch {
+    // Ignored. See comment above.
+  }
+}
+
 export async function createQuote(payerId: string, payeeId: string, ngnMinor: number): Promise<Quote> {
+  await ensureFreshRate();
   const { data, error } = await supabase.rpc("create_fx_quote", {
     p_payer: payerId,
     p_payee: payeeId,
@@ -683,7 +700,11 @@ export async function runMandate(mandateId: string): Promise<MandateRunResult> {
 // Postgres function, so this file only carries messages back and forth.
 // ---------------------------------------------------------------------------
 
-const SERVICES_URL = import.meta.env.VITE_SERVICES_URL ?? "http://localhost:8787";
+// In dev, `npm run services` runs the standalone Hono process on :8787. In a
+// Vercel deploy there is no such process; `/api` resolves to the serverless
+// functions in api/ai/*.ts instead, on the same origin as the static build.
+const SERVICES_URL =
+  import.meta.env.VITE_SERVICES_URL ?? (import.meta.env.DEV ? "http://localhost:8787" : "/api");
 
 export type Proposal = {
   proposalId: string;
