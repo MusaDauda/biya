@@ -1,152 +1,284 @@
-import React, { useState } from "react";
-import { ArrowRight, GraduationCap, Store, Mail, Lock } from "lucide-react";
-import { biya, font } from "./theme";
-import { supabase } from "../../../lib/supabase";
-import { hashPin } from "../../../lib/hash";
+import { useEffect, useState } from "react";
+import { biya, font, type } from "./theme";
+import { Field, PrimaryButton, Screen, ScreenHeader, TextButton, Wordmark } from "./primitives";
+import { CheckIcon } from "./icons";
+import {
+  logInWithPassword, requestEmailCode, signUpWithPassword, verifyEmailCode, type Me,
+} from "../../../lib/api";
 
-export function AuthScreen({ role, onAuth, onBack }: { role: "student" | "vendor"; onAuth: (id: string) => void; onBack: () => void }) {
-  const [isLogin, setIsLogin] = useState(true);
-  
+// A2 create account, A3 verify, plus log in.
+//
+// The account exists once the email and password are accepted. Identity and the
+// transaction PIN come later, in Onboarding, so nothing here can move money.
+
+type Mode = "signup" | "login" | "verify";
+
+const RULES = [
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { label: "One number", test: (p: string) => /\d/.test(p) },
+  { label: "One capital letter", test: (p: string) => /[A-Z]/.test(p) },
+];
+
+export function AuthScreen({ onAuth, onBack, start = "signup" }: {
+  onAuth: (u: Me) => void;
+  onBack: () => void;
+  start?: Mode;
+}) {
+  const [mode, setMode] = useState<Mode>(start);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [reveal, setReveal] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [pending, setPending] = useState<Me | null>(null);
+  const [code, setCode] = useState("");
+  const [issued, setIssued] = useState<string | null>(null);
+  const [seconds, setSeconds] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || password.length < 4) return;
-    
-    setLoading(true);
-    setError("");
-    const userId = email.trim().toLowerCase();
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const t = setTimeout(() => setSeconds((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [seconds]);
 
+  const passOk = RULES.every((r) => r.test(password));
+
+  const submit = async () => {
+    setBusy(true);
+    setError(null);
     try {
-      if (isLogin) {
-        // Handle Login
-        const { data, error: lookupError } = await supabase
-          .from("users")
-          .select("id, type, details")
-          .eq("id", userId)
-          .maybeSingle();
-          
-        if (lookupError) throw lookupError;
-        if (!data) {
-          setError("Account not found. Please sign up.");
-          setLoading(false);
-          return;
-        }
-        if (data.type !== role) {
-          setError(`This email is registered as a ${data.type}.`);
-          setLoading(false);
-          return;
-        }
-
-        const passHash = await hashPin(password);
-        if (data.details?.passwordHash !== passHash) {
-          if (data.details?.passwordHash) {
-            setError("Incorrect password.");
-            setLoading(false);
-            return;
-          } else {
-            await supabase.from("users").update({ details: { ...data.details, passwordHash: passHash } }).eq("id", userId);
-          }
-        }
-        
-        onAuth(userId);
-      } else {
-        // Handle Signup
-        const { data } = await supabase.from("users").select("id").eq("id", userId).maybeSingle();
-        if (data) {
-          setError("Email already in use. Please log in.");
-          setLoading(false);
-          return;
-        }
-        
-        const passwordHash = await hashPin(password);
-        const { error: createError } = await supabase.from("users").insert({
-          id: userId,
-          type: role,
-          name: "", // Will be filled in Onboarding
-          balance: 0,
-          details: { passwordHash },
-        });
-        
-        if (createError) throw createError;
-        onAuth(userId);
+      if (mode === "login") {
+        onAuth(await logInWithPassword(email, password));
+        return;
       }
+      const user = await signUpWithPassword(email, password);
+      setPending(user);
+      setIssued(await requestEmailCode(user.id));
+      setSeconds(60);
+      setMode("verify");
     } catch (err) {
-      console.error(err);
-      setError("An error occurred. Check your connection.");
-      setLoading(false);
+      setError(err instanceof Error ? err.message : "That did not work.");
+    } finally {
+      setBusy(false);
     }
   };
 
-  const Icon = role === "student" ? GraduationCap : Store;
+  // A code is single use, so a second concurrent submission would always fail
+  // against a row the first one already consumed.
+  const verify = async (value: string) => {
+    if (!pending || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      onAuth(await verifyEmailCode(pending.id, value));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That code is not right.");
+      setCode("");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // --- A3 verify -----------------------------------------------------------
+
+  if (mode === "verify" && pending) {
+    return (
+      <Screen>
+        <ScreenHeader onBack={() => { setMode("signup"); setCode(""); setError(null); }} />
+        <div className="flex-1 overflow-y-auto" style={{ padding: "8px 20px 24px" }}>
+          <div style={{ ...type.title, fontSize: 26, color: biya.ink }}>Enter your code</div>
+          <p style={{ ...type.body, color: biya.muted, marginTop: 10 }}>
+            We sent six digits to {pending.email}. It expires in 10 minutes.
+          </p>
+
+          <div className="flex justify-center" style={{ gap: 9, marginTop: 30 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <span
+                key={i}
+                className="flex items-center justify-center"
+                style={{
+                  width: 46, height: 56, borderRadius: 12,
+                  backgroundColor: biya.surface,
+                  border: `1.5px solid ${error ? biya.fail : i === code.length ? biya.action : biya.line}`,
+                  fontFamily: font.sans, fontWeight: 700, fontSize: 22, color: biya.ink,
+                }}
+              >
+                {code[i] ?? ""}
+              </span>
+            ))}
+          </div>
+
+          <input
+            value={code}
+            onChange={(e) => {
+              const next = e.target.value.replace(/\D/g, "").slice(0, 6);
+              setCode(next);
+              setError(null);
+              if (next.length === 6) verify(next);
+            }}
+            inputMode="numeric"
+            autoFocus
+            className="w-full text-center outline-none bg-transparent"
+            style={{ height: 1, opacity: 0, position: "absolute", left: -9999 }}
+          />
+
+          {error && <p style={{ ...type.body, color: biya.fail, marginTop: 14, textAlign: "center" }}>{error}</p>}
+
+          <div className="flex items-center justify-center" style={{ gap: 6, marginTop: 22 }}>
+            <span style={{ ...type.body, color: biya.faint }}>Resend code in</span>
+            <span style={{ fontFamily: font.mono, fontSize: 13, color: seconds > 0 ? biya.faint : biya.action }}>
+              {seconds > 0 ? `00:${String(seconds).padStart(2, "0")}` : "ready"}
+            </span>
+          </div>
+
+          {seconds <= 0 && (
+            <div className="text-center" style={{ marginTop: 10 }}>
+              <TextButton
+                color={biya.action}
+                onClick={async () => { setIssued(await requestEmailCode(pending.id)); setSeconds(60); }}
+              >
+                Send a new code
+              </TextButton>
+            </div>
+          )}
+
+          {/* No mail transport is wired, so the code it issued is offered here
+              rather than pretending an email is on its way. */}
+          {issued && (
+            <button
+              onClick={() => { setCode(issued); verify(issued); }}
+              className="w-full"
+              style={{
+                marginTop: 24, padding: "12px 14px", borderRadius: 12,
+                backgroundColor: biya.actionWashSoft,
+                fontFamily: font.mono, fontSize: 12.5, color: biya.action,
+              }}
+            >
+              Tap to fill {issued}
+            </button>
+          )}
+        </div>
+
+        <div style={{ padding: "12px 20px", paddingBottom: "max(16px, var(--safe-bottom, 0px))" }}>
+          <PrimaryButton onClick={() => verify(code)} disabled={code.length !== 6 || busy}>
+            {busy ? "Checking..." : "Verify"}
+          </PrimaryButton>
+        </div>
+      </Screen>
+    );
+  }
+
+  // --- A2 create account, and log in ---------------------------------------
+
+  const ready = email.includes("@") && (mode === "login" ? password.length > 0 : passOk && agreed);
 
   return (
-    <div className="h-full flex flex-col justify-between px-7 py-14" style={{ background: "linear-gradient(160deg, #000218 0%, #141b3c 60%, #1c2450 100%)", overflowY: "auto" }}>
-      <div>
-        <button onClick={onBack} className="mb-8 flex items-center gap-2 rounded-full px-4 py-2 transition-transform active:scale-95" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
-          <span style={{ fontFamily: font.mono, fontSize: 11, fontWeight: 600, color: "#fff", letterSpacing: "1px" }}>BACK</span>
-        </button>
-        
-        <span className="flex items-center justify-center rounded-3xl mb-5" style={{ width: 64, height: 64, backgroundColor: biya.marigold }}>
-          <Icon size={32} color={biya.goldDeep} />
-        </span>
-        
-        <h1 style={{ fontFamily: font.display, fontWeight: 800, fontSize: 36, color: "#fff", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-          {isLogin ? "Welcome back" : "Create account"}
-        </h1>
-        <p className="mt-3" style={{ fontFamily: font.display, fontSize: 16, color: "rgba(255,255,255,0.7)", lineHeight: 1.4 }}>
-          {role === "student" ? "Sign in to start paying on campus." : "Sign in to manage your stall."}
+    <Screen>
+      <ScreenHeader onBack={onBack} right={<Wordmark size={24} variant="ink" />} />
+      <div className="flex-1 overflow-y-auto" style={{ padding: "8px 20px 24px" }}>
+        <div style={{ ...type.title, fontSize: 26, color: biya.ink }}>
+          {mode === "login" ? "Welcome back" : "Create your account"}
+        </div>
+        <p style={{ ...type.body, color: biya.muted, marginTop: 10 }}>
+          {mode === "login"
+            ? "Your dollars are where you left them."
+            : "You will verify your phone and identity in the next few steps."}
         </p>
+
+        <div style={{ marginTop: 24 }}>
+          <Field
+            label="Email address"
+            placeholder="hauwa.abdullahi@gmail.com"
+            value={email}
+            onChange={(v) => { setEmail(v); setError(null); }}
+            inputMode="email"
+            autoFocus
+          />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <Field
+            label="Password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(v) => { setPassword(v); setError(null); }}
+            type={reveal ? "text" : "password"}
+            right={
+              <button
+                onClick={(e) => { e.preventDefault(); setReveal((r) => !r); }}
+                type="button"
+                style={{ fontFamily: font.sans, fontWeight: 600, fontSize: 12.5, color: biya.muted }}
+              >
+                {reveal ? "Hide" : "Show"}
+              </button>
+            }
+          />
+        </div>
+
+        {mode === "signup" && (
+          <div style={{ marginTop: 14 }}>
+            {RULES.map((r) => {
+              const ok = r.test(password);
+              return (
+                <div key={r.label} className="flex items-center" style={{ gap: 8, marginTop: 7 }}>
+                  <span
+                    className="flex items-center justify-center"
+                    style={{
+                      width: 17, height: 17, borderRadius: "50%",
+                      backgroundColor: ok ? biya.creditWash : biya.ground,
+                    }}
+                  >
+                    {ok
+                      ? <CheckIcon size={11} weight={3.2} />
+                      : <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: biya.lineStrong }} />}
+                  </span>
+                  <span style={{ ...type.bodySm, color: ok ? biya.credit : biya.faint }}>{r.label}</span>
+                </div>
+              );
+            })}
+
+            <button
+              onClick={() => setAgreed((a) => !a)}
+              className="flex items-start text-left"
+              style={{ gap: 10, marginTop: 18 }}
+            >
+              <span
+                className="flex items-center justify-center shrink-0"
+                style={{
+                  width: 20, height: 20, borderRadius: 6, marginTop: 1,
+                  backgroundColor: agreed ? biya.action : biya.surface,
+                  border: `1.5px solid ${agreed ? biya.action : biya.lineStrong}`,
+                }}
+              >
+                {agreed && <CheckIcon size={12} color="#fff" weight={3} />}
+              </span>
+              <span style={{ ...type.body, color: biya.muted }}>
+                I agree to the Terms of Service and the Privacy Policy.
+              </span>
+            </button>
+          </div>
+        )}
+
+        {error && <p style={{ ...type.body, color: biya.fail, marginTop: 16 }}>{error}</p>}
       </div>
 
-      <form onSubmit={handleAuthSubmit} className="flex flex-col gap-4 mt-8 flex-1 justify-center">
-        <div className="flex items-center gap-3 rounded-[20px] px-5 py-4" style={{ backgroundColor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>
-          <Mail size={20} color={biya.marigold} />
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email address"
-            type="email"
-            className="w-full bg-transparent outline-none"
-            style={{ fontFamily: font.display, fontSize: 17, color: "#fff" }}
-          />
-        </div>
-        
-        <div className="flex items-center gap-3 rounded-[20px] px-5 py-4" style={{ backgroundColor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>
-          <Lock size={20} color={biya.marigold} />
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            type="password"
-            className="w-full bg-transparent outline-none"
-            style={{ fontFamily: font.display, fontSize: 17, color: "#fff" }}
-          />
-        </div>
-        {error && <p style={{ fontFamily: font.display, fontSize: 13, color: "#ffb4ab" }}>{error}</p>}
-
-        <button 
-          disabled={loading || !email.trim() || password.length < 4}
-          type="submit" 
-          className="mt-6 flex items-center justify-center gap-2 rounded-full px-7 py-4 transition-transform active:scale-95 disabled:opacity-50" 
-          style={{ backgroundColor: biya.marigold }}
-        >
-          <span style={{ fontFamily: font.display, fontWeight: 700, fontSize: 17, color: biya.goldDeep }}>
-            {loading ? "Please wait..." : (isLogin ? "Log In" : "Continue")}
+      <div style={{ padding: "12px 20px", paddingBottom: "max(16px, var(--safe-bottom, 0px))" }}>
+        <PrimaryButton onClick={submit} disabled={!ready || busy}>
+          {busy ? "One moment..." : mode === "login" ? "Log in" : "Continue"}
+        </PrimaryButton>
+        <div className="text-center" style={{ marginTop: 14 }}>
+          <span style={{ ...type.body, color: biya.faint }}>
+            {mode === "login" ? "New here? " : "Already have an account? "}
           </span>
-          {!loading && <ArrowRight size={19} color={biya.goldDeep} />}
-        </button>
-        
-        <button type="button" onClick={() => setIsLogin(!isLogin)} className="mt-4 text-center">
-          <span style={{ fontFamily: font.display, fontSize: 14, color: "rgba(255,255,255,0.7)" }}>
-            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Log in"}
-          </span>
-        </button>
-      </form>
-    </div>
+          <TextButton
+            color={biya.action}
+            onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); }}
+          >
+            {mode === "login" ? "Create an account" : "Log in"}
+          </TextButton>
+        </div>
+      </div>
+    </Screen>
   );
 }

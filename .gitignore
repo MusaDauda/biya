@@ -38,3 +38,9 @@ supabase/.temp/
 docs/*
 guidelines/*
 bugs.md
+
+# Design reference screenshots, 150MB+ of PNGs. Local only.
+inspiration/
+
+# Scratch
+_t7.mjs
