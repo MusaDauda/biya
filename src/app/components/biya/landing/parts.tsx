@@ -48,7 +48,12 @@ export const LANDING_CSS = `
 @media (min-width:${LP_BP}px){
   .lp-rise{transform:translateY(18px)}
   .lp-zoom{transform:scale(1.05)}
+  /* min-width:0 on the children because a 1fr track is minmax(auto,1fr), so any
+     item with a wide minimum size (a long unbroken heading, a box with an
+     aspect ratio) pushes its own track past its share and steals from the
+     other. The columns are meant to be even. */
   .lp-two{grid-template-columns:1fr 1fr;align-items:center}
+  .lp-two>*{min-width:0}
   /* Media sits left on a wide screen, but stays after the heading in the DOM so
      a phone reads heading first. Order swaps it rather than duplicating markup. */
   .lp-two-media-left>:first-child{order:2}
@@ -60,7 +65,14 @@ export const LANDING_CSS = `
   .lp-sched-media{grid-area:media;align-self:center}
   .lp-sched-head{grid-area:head;align-self:end}
   .lp-sched-cta{grid-area:cta;align-self:start}
-  .lp-scan-media{aspect-ratio:4/3}
+  /* The 4:3 crop was drawn to hold a photograph. It now holds an upright
+     collection card, and at the narrow end of the desktop range a 4:3 box is
+     only about 274px tall, which clipped the card.
+     Height is set directly rather than as an aspect ratio with a min-height:
+     that pair gives the box an automatic minimum WIDTH of height x 4/3, which
+     inflated its grid track to 573px and squeezed the heading beside it down
+     to 186px. A plain height leaves the width entirely to the track. */
+  .lp-scan-media{aspect-ratio:auto;height:430px}
   .lp-cta-row{flex-direction:row;flex-wrap:wrap}
   .lp-app{grid-template-columns:minmax(0,1fr) auto}
   .lp-qr{display:block}
@@ -173,22 +185,53 @@ export function Reveal({ kind = "rise", delay = 0, className, style, id, childre
  */
 export function ImageSlot({
   src,
+  srcSet,
+  sources = [],
+  sizes = "100vw",
   alt = "",
   fit = "cover",
+  position = "center",
+  priority = false,
 }: {
   src?: string;
+  srcSet?: string;
+  /** Art direction. A different crop per viewport, not just a different size. */
+  sources?: { media: string; srcSet: string }[];
+  sizes?: string;
   alt?: string;
   fit?: "cover" | "contain";
+  position?: string;
+  /**
+   * The hero is the largest contentful paint. Lazy loading it delays the one
+   * image that decides how fast the page feels, so the hero opts out.
+   */
+  priority?: boolean;
 }) {
   if (!src) return null;
   return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: fit }}
-    />
+    <picture>
+      {sources.map((s) => (
+        <source key={s.media} media={s.media} srcSet={s.srcSet} sizes={sizes} type="image/webp" />
+      ))}
+      <img
+        src={src}
+        srcSet={srcSet}
+        sizes={sizes}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {...({ fetchpriority: priority ? "high" : undefined } as any)}
+        decoding={priority ? "sync" : "async"}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: fit,
+          objectPosition: position,
+        }}
+      />
+    </picture>
   );
 }
 

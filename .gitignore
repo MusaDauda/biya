@@ -44,3 +44,10 @@ inspiration/
 
 # Scratch
 _t7.mjs
+
+# Landing photography originals, ~6MB. Only the webp derivatives in
+# public/photos are committed. See scripts/make-photos.mjs.
+photos-src/
+
+# Local scratch
+scratch/

@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { biya, brand, font } from "../theme";
 import {
   ImageSlot,
+  LP_BP,
   LandingMark,
   Reveal,
   bigTitle,
@@ -63,8 +64,25 @@ export function Hook({ onEnter }: { onEnter: Enter }) {
         alignItems: "flex-end",
       }}
     >
+      {/* Two crops, not two sizes. The hero is roughly 0.54 wide-to-tall on a
+          phone and 1.68 on a desktop, so one file centre-cropped to both throws
+          away most of one of them. The portrait frame keeps the trader and the
+          POS stall on a phone; the landscape frame is barely cropped at all on
+          a desktop. See scripts/make-photos.mjs. */}
       <Reveal kind="zoom" style={{ position: "absolute", inset: 0 }}>
-        <ImageSlot /* Samaru stall at dusk, a phone with Biya open on the counter */ />
+        <ImageSlot
+          priority
+          alt="A trader at her stall in a Nigerian market, tomatoes and peppers laid out in front of her"
+          sources={[
+            {
+              media: `(min-width:${LP_BP}px)`,
+              srcSet:
+                "/photos/hero-landscape-1600.webp 1600w, /photos/hero-landscape-2400.webp 2400w",
+            },
+          ]}
+          src="/photos/hero-portrait-900.webp"
+          srcSet="/photos/hero-portrait-900.webp 900w, /photos/hero-portrait-1600.webp 1600w"
+        />
       </Reveal>
       <div
         style={{
@@ -329,6 +347,75 @@ export function Account() {
 
 // --- 03 Scan and pay --------------------------------------------------------
 
+/**
+ * A shop's collection code, the thing a customer actually points a phone at.
+ *
+ * Drawn rather than photographed. The reference was a 334x405 screenshot, and
+ * this box is up to 550px wide on a desktop, so using it directly would have
+ * meant upscaling a raster by nearly two and looking soft and washed out. The
+ * QR here is an SVG, so it is exact at any size and still scans. Value, level
+ * and the centred mark match what ReceiveMode renders inside the app, so the
+ * page is not showing a code the product would not produce.
+ */
+function CollectionCard() {
+  const code = "8894612247";
+  return (
+    <div
+      style={{
+        width: "min(260px,82%)",
+        background: brand.white,
+        borderRadius: 22,
+        padding: "20px 20px 22px",
+        boxShadow: "0 24px 54px rgba(0,0,0,.34)",
+      }}
+    >
+      <div style={{ position: "relative", width: "100%", aspectRatio: "1", background: brand.white }}>
+        <QRCodeSVG
+          value={code}
+          size={256}
+          level="Q"
+          bgColor={brand.white}
+          fgColor={biya.ink}
+          style={{ width: "100%", height: "100%" }}
+        />
+        {/* Level Q tolerates about 25 percent occlusion, which is what lets the
+            mark sit in the middle without breaking the read. */}
+        <span
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%,-50%)",
+            width: "23%",
+            height: "23%",
+            borderRadius: "24%",
+            background: biya.ink,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: `2.5px solid ${brand.white}`,
+          }}
+        >
+          <LandingMark size={17} tone={brand.white} />
+        </span>
+      </div>
+
+      <div
+        style={{
+          ...sans(16, 700, biya.ink, 1.22),
+          letterSpacing: "-.01em",
+          textTransform: "uppercase",
+          marginTop: 18,
+        }}
+      >
+        ASM Global General Enterprises
+      </div>
+      <div style={{ ...mono(12, biya.action), marginTop: 8 }}>@asmglobalgeneralenterprises</div>
+      <div style={{ ...mono(13, biya.faint), letterSpacing: ".08em", marginTop: 8 }}>{code}</div>
+    </div>
+  );
+}
+
 export function ScanAndPay() {
   return (
     <section style={{ background: brand.white, padding: sectionPad }}>
@@ -350,9 +437,13 @@ export function ScanAndPay() {
               borderRadius: 24,
               overflow: "hidden",
               background: brand.night,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 22,
             }}
           >
-            <ImageSlot /* A hand holding a phone up to a printed Biya code taped to a stall */ />
+            <CollectionCard />
           </div>
           <div
             style={{
