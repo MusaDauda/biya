@@ -12,11 +12,17 @@ import { refreshRate } from "../../services/fx.ts";
 
 export default async function handler(_req: IncomingMessage, res: ServerResponse) {
   res.setHeader("content-type", "application/json");
-  const reading = await refreshRate();
-  if (!reading) {
-    res.statusCode = 502;
-    res.end(JSON.stringify({ error: "every rate source failed" }));
-    return;
+  try {
+    const reading = await refreshRate();
+    if (!reading) {
+      res.statusCode = 502;
+      res.end(JSON.stringify({ error: "every rate source failed" }));
+      return;
+    }
+    res.end(JSON.stringify(reading));
+  } catch (err) {
+    console.error("[fx/refresh]", err);
+    res.statusCode = 500;
+    res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
   }
-  res.end(JSON.stringify(reading));
 }
