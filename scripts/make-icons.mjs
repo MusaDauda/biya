@@ -1,93 +1,92 @@
-// Rebuilds the Biya icon set.
-//
-// The source logo shipped as a JPEG named .png, so its transparency had already
-// been flattened onto a grey checkerboard and those squares were real pixels.
-// The Biya mark is gold and highly saturated; the checkerboard is pure grey with
-// zero chroma. So we key on chroma rather than on colour distance, which keeps
-// the anti-aliased edges of the mark intact.
+// Rebuilds the Biya icon set from the brand mark.
 //
 //   node scripts/make-icons.mjs
+//
+// The previous version of this script keyed a grey checkerboard out of a JPEG
+// that had been saved as .png, because the only copy of the old marigold logo
+// was a flattened raster. That logo is retired. The seal is vector now, defined
+// once here and matching primitives.tsx exactly, so an icon can never drift
+// away from the mark the app draws on screen.
+//
+// Brand system, app icon: drawn full bleed on the indigo field, with the
+// departure dot clear of the edge so every platform mask misses it.
 
 import sharp from 'sharp'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 
-// Read into a buffer rather than handing sharp a path: on Windows sharp keeps
-// the source file handle open, and we write back over this same file.
-const SRC = readFileSync('public/logo.png')
-const INK = { r: 0, g: 2, b: 24, alpha: 1 }   // biya.ink #000218
+// --- the mark, in its native 48 unit box -----------------------------------
+// Identical to SEAL_OPEN / SEAL_CLOSED in src/app/components/biya/primitives.tsx.
+const SEAL_OPEN =
+  'M13 8h7a8 8 0 0 1 0 16 8 8 0 0 1 0 16h-7a7 7 0 0 1-7-7V15a7 7 0 0 1 7-7zm7 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 1 0 0-7zm0 16a3.5 3.5 0 1 0 0 7 3.5 3.5 0 1 0 0-7z'
+const SEAL_CLOSED =
+  'M13 8h7a8 8 0 0 1 0 16 8 8 0 0 1 0 16h-7a7 7 0 0 1-7-7V15a7 7 0 0 1 7-7z'
 
-// Chroma below LOW is certainly background, above HIGH is certainly the mark.
-// Between them we ramp alpha so edges stay smooth.
-const LOW = 12
-const HIGH = 40
+const INDIGO = '#4844E0'
+const WHITE = '#FFFFFF'
 
-async function keyOutGrey(src) {
-  const { data, info } = await sharp(src)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true })
+// Measured bounds of the artwork inside the 48 unit box. The seal spans x 6..28,
+// the departure dot x 31.5..43.5, both y 8..40 (dot y 18..30). Centring on the
+// drawn bounds rather than on the box keeps the mark optically centred: the box
+// has empty space to the right of the dot that would otherwise pull it left.
+const OPEN_BOX = { x: 6, y: 8, w: 37.5, h: 32 }
+const CLOSED_BOX = { x: 6, y: 8, w: 22, h: 32 }
 
-  const out = Buffer.from(data)
-  for (let i = 0; i < out.length; i += 4) {
-    const r = out[i], g = out[i + 1], b = out[i + 2]
-    const chroma = Math.max(r, g, b) - Math.min(r, g, b)
-    let a = 255
-    if (chroma <= LOW) a = 0
-    else if (chroma < HIGH) a = Math.round(((chroma - LOW) / (HIGH - LOW)) * 255)
-    out[i + 3] = a
-  }
+/**
+ * @param closed  Below 24px the counters fill in and the dot is noise, so small
+ *                sizes get the solid monogram. This is the brand's own floor.
+ * @param cover   Fraction of the canvas the artwork spans. Maskable icons need
+ *                a deep safe zone because launchers crop to a circle.
+ */
+function markSvg(size, { closed = false, cover = 0.74, background = null } = {}) {
+  const box = closed ? CLOSED_BOX : OPEN_BOX
+  const scale = (48 * cover) / Math.max(box.w, box.h)
+  const tx = 24 - (box.x + box.w / 2) * scale
+  const ty = 24 - (box.y + box.h / 2) * scale
 
-  return sharp(out, { raw: { width: info.width, height: info.height, channels: 4 } })
-    .png()
-    .toBuffer()
+  const bg = background ? `<rect width="48" height="48" fill="${background}"/>` : ''
+  const dot = closed ? '' : `<circle cx="37.5" cy="24" r="6" fill="${WHITE}"/>`
+
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 48 48">` +
+      bg +
+      `<g transform="translate(${tx} ${ty}) scale(${scale})">` +
+      `<path d="${closed ? SEAL_CLOSED : SEAL_OPEN}" fill="${WHITE}" fill-rule="evenodd" clip-rule="evenodd"/>` +
+      dot +
+      '</g></svg>',
+  )
 }
 
-// The wordmark sits under the shield with a clear gap. At 192px a wordmark is
-// illegible, so app icons use the shield alone.
-async function topMark(transparentPng) {
-  const trimmed = await sharp(transparentPng).trim().png().toBuffer()
-  const { width, height } = await sharp(trimmed).metadata()
-  return sharp(trimmed)
-    .extract({ left: 0, top: 0, width, height: Math.round(height * 0.58) })
-    .trim()
-    .png()
-    .toBuffer()
+async function png(svg, size) {
+  return sharp(svg, { density: 384 }).resize(size, size).png().toBuffer()
 }
-
-// `pad` is the fraction of the canvas left empty around the mark. Maskable
-// icons need a generous safe zone because launchers crop to a circle or squircle.
-async function icon(mark, size, pad, background) {
-  const inner = Math.round(size * (1 - pad * 2))
-  const resized = await sharp(mark)
-    .resize(inner, inner, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .toBuffer()
-
-  return sharp({
-    create: { width: size, height: size, channels: 4, background },
-  })
-    .composite([{ input: resized, gravity: 'center' }])
-    .png()
-    .toBuffer()
-}
-
-const transparent = await keyOutGrey(SRC)
-writeFileSync('public/logo.png', transparent)
-console.log('public/logo.png            rewritten with real transparency')
-
-const mark = await topMark(transparent)
-writeFileSync('public/mark.png', mark)
-const markMeta = await sharp(mark).metadata()
-console.log(`public/mark.png            ${markMeta.width}x${markMeta.height} shield only`)
 
 const targets = [
-  ['public/icon-192.png',          192, 0.16, INK],
-  ['public/icon-512.png',          512, 0.16, INK],
-  ['public/icon-maskable-512.png', 512, 0.26, INK],
-  ['public/apple-touch-icon.png',  180, 0.14, INK],
-  ['public/favicon.png',            64, 0.08, { r: 0, g: 0, b: 0, alpha: 0 }],
+  // path, size, options
+  ['public/icon-192.png', 192, { cover: 0.74, background: INDIGO }],
+  ['public/icon-512.png', 512, { cover: 0.74, background: INDIGO }],
+  // Launchers crop maskable icons to a circle or squircle and keep only the
+  // middle ~80%. Pulling the artwork in to 56% keeps the departure dot inside
+  // that circle instead of letting the mask bite it off.
+  ['public/icon-maskable-512.png', 512, { cover: 0.56, background: INDIGO }],
+  ['public/apple-touch-icon.png', 180, { cover: 0.72, background: INDIGO }],
+  // Favicons carry the indigo tile rather than a transparent ground. A
+  // transparent favicon with an ink glyph disappears against a dark browser
+  // tab, which is where most of these are actually seen.
+  ['public/favicon.png', 64, { cover: 0.72, background: INDIGO }],
+  ['public/favicon-32.png', 32, { cover: 0.72, background: INDIGO }],
+  ['public/favicon-16.png', 16, { closed: true, cover: 0.68, background: INDIGO }],
 ]
 
-for (const [path, size, pad, bg] of targets) {
-  writeFileSync(path, await icon(mark, size, pad, bg))
-  console.log(`${path.padEnd(26)} ${size}x${size}`)
+for (const [path, size, opts] of targets) {
+  writeFileSync(path, await png(markSvg(size, opts), size))
+  console.log(`${path.padEnd(30)} ${size}x${size}${opts.closed ? '  monogram' : ''}`)
 }
+
+// A vector favicon so the tab icon stays sharp on any display. Browsers that
+// support it prefer it over every PNG above.
+writeFileSync('public/favicon.svg', markSvg(48, { cover: 0.72, background: INDIGO }))
+console.log('public/favicon.svg             vector')
+
+// The full lockup, for anywhere that wants the mark on its own.
+writeFileSync('public/mark.png', await png(markSvg(512, { cover: 0.92 }), 512))
+console.log('public/mark.png                512x512 glyph only, transparent')

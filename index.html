@@ -11,6 +11,12 @@
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#F2F3F5" />
+    <!-- SVG first for browsers that take it, PNG sizes behind it for those that
+         do not. The 16px file carries the closed monogram: below 24px the seal's
+         counters and the departure dot turn to mud, which is the brand's own floor. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
