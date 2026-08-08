@@ -7,7 +7,7 @@ import { biya, brand, clockTime, font, formatNgn, formatRate, formatUsd, initial
 import { Avatar, BiyaIcon, Card, Eyebrow, Field, PrimaryButton, Screen, ScreenHeader, Segmented } from "./primitives";
 import { AlertIcon, ChevronRight, CopyIcon, GalleryIcon, ShareIcon, TorchIcon } from "./icons";
 import {
-  findUserByCode, findByTag, findByPhone, getMe, nameOf, personName, resolveAccount,
+  findUserByCode, findByTag, findByPhone, getMe, nameOf, payeeFromLookup, personName, resolveAccount,
   type ActivityRow, type FxSnapshot, type Me,
 } from "../../../lib/api";
 
@@ -351,13 +351,13 @@ function TransferMode({
         const r = await findByTag(value.replace(/^@/, ""));
         if (!r.found) { setError(r.reason); return; }
         const payee = await getMe(r.userId);
-        if (payee) { onFound(payee); return; }
+        if (payee) { onFound(payeeFromLookup(payee, r)); return; }
       }
       if (route === "phone") {
         const r = await findByPhone(value);
         if (!r.found) { setError(r.reason); return; }
         const payee = await getMe(r.userId);
-        if (payee) { onFound(payee); return; }
+        if (payee) { onFound(payeeFromLookup(payee, r)); return; }
       }
       setError("Could not find that account.");
     } finally {

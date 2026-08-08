@@ -370,7 +370,7 @@ export async function findByTag(tag: string): Promise<Resolved> {
   if (error || !data) return { found: false, reason: "Could not look that up." };
   const r = data as any;
   return r.found
-    ? { found: true, userId: r.user_id, name: r.name, receiveCode: r.receive_code }
+    ? { found: true, userId: r.user_id, name: r.name, receiveCode: r.receive_code, kind: r.kind }
     : { found: false, reason: r.reason };
 }
 
@@ -379,8 +379,19 @@ export async function findByPhone(phone: string): Promise<Resolved> {
   if (error || !data) return { found: false, reason: "Could not check that number." };
   const r = data as any;
   return r.found
-    ? { found: true, userId: r.user_id, name: r.name, receiveCode: r.receive_code }
+    ? { found: true, userId: r.user_id, name: r.name, receiveCode: r.receive_code, kind: r.kind }
     : { found: false, reason: r.reason };
+}
+
+/**
+ * A lookup names the account that was searched for; the row behind it is the
+ * owner. For a business those differ: the owner's `business_name` column holds
+ * whichever business they created first, which is not necessarily the one being
+ * paid. Carry the looked-up name through so the confirmation screen shows the
+ * account the payer actually typed.
+ */
+export function payeeFromLookup(user: Me, found: Extract<Resolved, { found: true }>): Me {
+  return found.kind === "business" ? { ...user, business_name: found.name } : user;
 }
 
 

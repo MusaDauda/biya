@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { biya, font, formatNgn, initials, radius, type } from "./theme";
-import { Avatar, BiyaIcon, Card, Eyebrow } from "./primitives";
-import { LockIcon } from "./icons";
+import { biya, font, formatNgn, initials, radius, relativeTime, type } from "./theme";
+import { Avatar, BiyaIcon, Card, Eyebrow, Sheet } from "./primitives";
+import { ClockIcon, LockIcon } from "./icons";
 import {
   askAssistant, assistantStatus, resolveProposal,
-  type AgentTurn, type Me, type Proposal,
+  type AgentReply, type Me, type Proposal,
 } from "../../../lib/api";
+import {
+  hasContent, historyFor, loadChat, reopen, saveChat, startNew, titleOf,
+  type Bubble, type ChatState,
+} from "../../../lib/chatStore";
 
 /**
  * The assistant.
@@ -18,12 +22,6 @@ import {
  * across a room, because the whole safety argument rests on them noticing.
  */
 
-type Bubble =
-  | { kind: "user"; text: string }
-  | { kind: "assistant"; text: string }
-  | { kind: "proposal"; proposal: Proposal; state: "pending" | "dismissed" }
-  | { kind: "error"; text: string };
-
 const SUGGESTIONS = [
   "What is my balance in naira today?",
   "What did I spend this week?",
@@ -31,46 +29,82 @@ const SUGGESTIONS = [
   "Send Hauwa ₦1,200 for lunch",
 ];
 
-export function Assistant({ user, onConfirm }: {
+export function Assistant({ user, active, onConfirm }: {
   user: Me;
+  /** Whether the Chat tab is the one on screen. This stays mounted when it is
+   *  not, so anything that costs a request waits until it is first shown. */
+  active: boolean;
   /** Hands the proposal to PayFlow, which quotes it and takes the PIN. */
   onConfirm: (proposal: Proposal) => void;
 }) {
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  // Read back before the first paint, so returning to the tab shows the
+  // conversation rather than showing an empty one and then correcting itself.
+  const [chat, setChat] = useState<ChatState>(() => loadChat(user.id));
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [sessionId, setSessionId] = useState<string | undefined>();
   const [offline, setOffline] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const asked = useRef(false);
 
-  useEffect(() => { assistantStatus().then((s) => setOffline(!s.configured)).catch(() => setOffline(true)); }, []);
+  const bubbles = chat.current.bubbles;
+
+  useEffect(() => {
+    if (!active || asked.current) return;
+    asked.current = true;
+    assistantStatus().then((s) => setOffline(!s.configured)).catch(() => setOffline(true));
+  }, [active]);
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
   }, [bubbles, busy]);
+  useEffect(() => { saveChat(user.id, chat); }, [user.id, chat]);
+
+  const append = (extra: Bubble[], sessionId?: string) => {
+    setChat((c) => ({
+      ...c,
+      current: {
+        ...c.current,
+        sessionId: sessionId ?? c.current.sessionId,
+        bubbles: [...c.current.bubbles, ...extra],
+        updatedAt: Date.now(),
+      },
+    }));
+  };
 
   const send = async (text: string) => {
     const message = text.trim();
     if (!message || busy) return;
+    // Read before appending: the model is given the turns that came before this
+    // one, and the message itself travels separately.
+    const conversation = chat.current;
     setInput("");
-    setBubbles((b) => [...b, { kind: "user", text: message }]);
+    append([{ kind: "user", text: message }]);
     setBusy(true);
     try {
-      const reply: AgentTurn = await askAssistant(user.id, message, sessionId);
-      setSessionId(reply.sessionId);
+      const reply: AgentReply = await askAssistant(
+        user.id, message, conversation.sessionId, historyFor(conversation),
+      );
       const next: Bubble[] = [];
       if (reply.text) next.push({ kind: "assistant", text: reply.text });
       for (const p of reply.proposals ?? []) next.push({ kind: "proposal", proposal: p, state: "pending" });
-      setBubbles((b) => [...b, ...next]);
+      append(next, reply.sessionId);
     } catch (err) {
-      setBubbles((b) => [...b, { kind: "error", text: err instanceof Error ? err.message : "The assistant is not reachable right now." }]);
+      append([{ kind: "error", text: err instanceof Error ? err.message : "The assistant is not reachable right now." }]);
     } finally {
       setBusy(false);
     }
   };
 
   const dismiss = async (proposalId: string) => {
-    setBubbles((b) => b.map((x) =>
-      x.kind === "proposal" && x.proposal.proposalId === proposalId ? { ...x, state: "dismissed" } : x));
+    setChat((c) => ({
+      ...c,
+      current: {
+        ...c.current,
+        bubbles: c.current.bubbles.map((x) =>
+          x.kind === "proposal" && x.proposal.proposalId === proposalId ? { ...x, state: "dismissed" } : x),
+        updatedAt: Date.now(),
+      },
+    }));
     await resolveProposal(proposalId, "rejected").catch(() => {});
   };
 
@@ -86,6 +120,31 @@ export function Assistant({ user, onConfirm }: {
         <div className="flex-1 min-w-0">
           <div style={{ ...type.row, fontSize: 16, color: biya.ink }}>Biya assistant</div>
         </div>
+
+        {chat.earlier.length > 0 && (
+          <button
+            onClick={() => setHistoryOpen(true)}
+            aria-label="Earlier chats"
+            className="flex items-center justify-center transition-opacity active:opacity-60"
+            style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: biya.surface, border: `1px solid ${biya.line}` }}
+          >
+            <ClockIcon size={16} color={biya.muted} />
+          </button>
+        )}
+
+        {hasContent(chat.current) && (
+          <button
+            onClick={() => setChat(startNew)}
+            className="transition-opacity active:opacity-60"
+            style={{
+              height: 34, padding: "0 13px", borderRadius: 11, backgroundColor: biya.surface,
+              border: `1px solid ${biya.line}`,
+              fontFamily: font.sans, fontWeight: 600, fontSize: 13, color: biya.ink,
+            }}
+          >
+            New chat
+          </button>
+        )}
       </header>
 
       <div ref={scroller} className="flex-1 overflow-y-auto" style={{ padding: "8px 20px 16px" }}>
@@ -183,7 +242,55 @@ export function Assistant({ user, onConfirm }: {
           </button>
         </form>
       </div>
+
+      {historyOpen && (
+        <HistorySheet
+          chat={chat}
+          onPick={(id) => { setChat((c) => reopen(c, id)); setHistoryOpen(false); }}
+          onDismiss={() => setHistoryOpen(false)}
+        />
+      )}
     </div>
+  );
+}
+
+/** Earlier conversations, on this device. Tapping one puts it back on screen. */
+function HistorySheet({ chat, onPick, onDismiss }: {
+  chat: ChatState;
+  onPick: (id: string) => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <Sheet onDismiss={onDismiss}>
+      <div style={{ padding: "10px 20px 4px" }}>
+        <span style={{ ...type.title, fontSize: 19, color: biya.ink }}>Earlier</span>
+      </div>
+
+      <div style={{ padding: "14px 20px 0", maxHeight: 380, overflowY: "auto" }}>
+        <Card>
+          {chat.earlier.map((c, i) => (
+            <button
+              key={c.id}
+              onClick={() => onPick(c.id)}
+              className="w-full text-left transition-opacity active:opacity-70"
+              style={{
+                display: "block", padding: "14px 15px",
+                borderBottom: i === chat.earlier.length - 1 ? "none" : `1px solid ${biya.hairline}`,
+              }}
+            >
+              <span className="block truncate" style={{ ...type.rowSm, color: biya.ink }}>{titleOf(c)}</span>
+              <span className="block" style={{ ...type.bodySm, color: biya.faint, marginTop: 3 }}>
+                {relativeTime(c.updatedAt)}
+              </span>
+            </button>
+          ))}
+        </Card>
+
+        <p style={{ ...type.body, color: biya.faint, marginTop: 12 }}>
+          Chats are kept on this phone only, so they do not follow you to another device.
+        </p>
+      </div>
+    </Sheet>
   );
 }
 

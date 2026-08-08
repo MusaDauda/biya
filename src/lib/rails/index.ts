@@ -12,7 +12,7 @@ import { bankNgnInRail, bankPayoutRail } from "./bank";
 
 export * from "./types";
 export { testFundsRail } from "./testFunds";
-export { usdtRail } from "./usdt";
+export { usdtRail, usdtDeposit } from "./usdt";
 export { clevaRail } from "./cleva";
 export { bankNgnInRail, bankPayoutRail } from "./bank";
 

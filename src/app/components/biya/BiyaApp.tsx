@@ -175,6 +175,7 @@ export function BiyaApp({ user, onUserChanged, onLogout }: {
           onRequest={() => setOverlay({ kind: "pay", mode: "receive" })}
           onAddMoney={() => setOverlay({ kind: "add" })}
           onWithdraw={() => setOverlay({ kind: "add" })}
+          onGoal={() => setOverlay({ kind: "goal" })}
           onViewAll={() => setTab("activity")}
           onRetry={refresh}
         />
@@ -182,16 +183,21 @@ export function BiyaApp({ user, onUserChanged, onLogout }: {
 
       {tab === "activity" && <Activity rows={activity} />}
 
-      {tab === "chat" && (
+      {/* Kept mounted rather than switched on and off. The transcript is saved
+          either way, but a reply that lands while the user is on another tab
+          should still arrive, and their half typed question should still be
+          there. `contents` keeps the layout identical to rendering it bare. */}
+      <div style={{ display: tab === "chat" ? "contents" : "none" }}>
         <Assistant
           user={user}
+          active={tab === "chat"}
           onConfirm={async (proposal) => {
             const payee = await getMe(proposal.payeeId);
             if (!payee) return;
             setOverlay({ kind: "flow", payee, ngnMinor: proposal.ngnMinor, proposalId: proposal.proposalId });
           }}
         />
-      )}
+      </div>
 
       {tab === "profile" && (
         <Profile

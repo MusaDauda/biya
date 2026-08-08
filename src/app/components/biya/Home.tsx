@@ -3,7 +3,10 @@ import {
   biya, clockTime, DAY, font, formatNgn, formatRate, formatUsd, initials, type,
 } from "./theme";
 import { Avatar, Card, Eyebrow, SectionHead, Sheet } from "./primitives";
-import { ChevronDown, ChevronRight, PlusIcon } from "./icons";
+import {
+  ArrowDownIcon, ArrowUpIcon, ChevronDown, ChevronRight, CollectIcon, PlusIcon,
+  ReceiveIcon, WalletIcon, WithdrawIcon,
+} from "./icons";
 import type { ActivityRow, Balances, BusinessAccount, FxSnapshot, Me } from "../../../lib/api";
 
 // Home in both contexts, plus the switch between them.
@@ -27,6 +30,8 @@ export function Home(props: {
   onRequest: () => void;
   onAddMoney: () => void;
   onWithdraw: () => void;
+  /** Business home offers savings as the other thing to do with a balance. */
+  onGoal: () => void;
   onViewAll: () => void;
   onRetry: () => void;
 }) {
@@ -182,9 +187,27 @@ function PersonalHome({
       {/* Pay is the raised centre action in the tab bar, so it is deliberately
           absent here. These three are the rest of the money surface. */}
       <div className="flex" style={{ gap: 8, padding: "20px 20px 0" }}>
-        <QuietAction label="Request" onClick={onRequest} />
-        <QuietAction label="Add money" onClick={onAddMoney} />
-        <QuietAction label={offline ? "My code" : "Withdraw"} onClick={offline ? onRequest : onWithdraw} />
+        <QuietAction
+          label="Request"
+          onClick={onRequest}
+          icon={<ReceiveIcon size={17} color={biya.muted} />}
+        />
+        <QuietAction
+          label="Add money"
+          onClick={onAddMoney}
+          icon={<WalletIcon size={17} color={biya.muted} />}
+        />
+        {/* Offline the centre action is dead, so this slot becomes the way to
+            get paid instead, and the icon has to follow the label. */}
+        <QuietAction
+          label={offline ? "My code" : "Withdraw"}
+          onClick={offline ? onRequest : onWithdraw}
+          icon={
+            offline
+              ? <CollectIcon size={17} color={biya.muted} />
+              : <WithdrawIcon size={17} color={biya.muted} />
+          }
+        />
       </div>
 
       {offline && (
@@ -224,7 +247,7 @@ function PersonalHome({
 // ---------------------------------------------------------------------------
 
 function BusinessHome({
-  account, activity, balances, businesses, user, onSwitch, onViewAll,
+  account, activity, balances, fx, onSwitch, onViewAll, onWithdraw, onGoal,
 }: Parameters<typeof Home>[0] & { account: BusinessAccount }) {
   const today = activity.filter((r) => r.ngnMinor > 0 && r.createdAt >= startOfToday());
   const yesterday = activity.filter(
@@ -233,27 +256,60 @@ function BusinessHome({
   const takenKobo = today.reduce((s, r) => s + r.ngnMinor, 0);
   const yesterdayKobo = yesterday.reduce((s, r) => s + r.ngnMinor, 0);
   const delta = takenKobo - yesterdayKobo;
+  const week = dailyTotals(activity, 7);
 
   return (
     <Screenful chip={<ContextChip label={account.name} mono={initials(account.name)} onClick={() => onSwitch("open")} />}>
-      <div style={{ padding: "26px 20px 0" }}>
+      <div style={{ padding: "22px 20px 0" }}>
         <Eyebrow>Business balance</Eyebrow>
-        <div style={{ ...type.balanceLg, color: biya.ink, marginTop: 9 }}>
+        <div style={{ ...type.balance, fontSize: 42, letterSpacing: "-0.045em", color: biya.ink, marginTop: 11 }}>
           ₦{formatNgn(balances.ngnMinor)}
         </div>
-        <div className="flex items-baseline" style={{ gap: 6, marginTop: 9, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: font.sans, fontWeight: 600, fontSize: 15, color: biya.inkSoft }}>
-            {today.length} {today.length === 1 ? "payment today" : "payments today"}
-          </span>
-          {yesterdayKobo > 0 && (
-            <span style={{ ...type.body, color: biya.faint }}>
-              · ₦{formatNgn(Math.abs(delta), false)} {delta >= 0 ? "more" : "less"} than yesterday
-            </span>
-          )}
+        <div style={{ ...type.body, fontSize: 13.5, color: biya.muted, marginTop: 10 }}>
+          {fx ? `$${formatUsd(dollarValue(balances.ngnMinor, fx))} · available now` : "Available now"}
         </div>
       </div>
 
+      {/* Two ways out of this balance, both of which the person chooses. There
+          is no settlement here: money that has landed has landed. */}
+      <div className="flex" style={{ gap: 9, padding: "20px 20px 0" }}>
+        <SolidAction label="Withdraw" onClick={onWithdraw} icon={<ArrowDownIcon size={16} />} />
+        <QuietAction label="Move to savings" onClick={onGoal} icon={<PlusIcon size={16} color={biya.ink} />} />
+      </div>
+
       <div style={{ padding: "24px 20px 0" }}>
+        <Card>
+          <div style={{ padding: "17px 18px 18px" }}>
+            <div className="flex items-center justify-between" style={{ gap: 10 }}>
+              <span style={{ ...type.row, color: biya.ink }}>Incoming today</span>
+              <span style={{ fontFamily: font.mono, fontSize: 11, color: biya.faint }}>
+                {today.length} {today.length === 1 ? "payment" : "payments"}
+              </span>
+            </div>
+
+            <div style={{ fontFamily: font.sans, fontWeight: 700, fontSize: 27, lineHeight: 1, letterSpacing: "-0.035em", color: takenKobo > 0 ? biya.credit : biya.faint, marginTop: 13 }}>
+              +₦{formatNgn(takenKobo)}
+            </div>
+
+            <WeekBars values={week} />
+
+            <div className="flex items-center justify-between" style={{ marginTop: 9, fontFamily: font.mono, fontSize: 10.5, color: biya.faint }}>
+              <span>Last 7 days</span>
+              {yesterdayKobo > 0 && delta !== 0 && (
+                <span className="inline-flex items-center" style={{ gap: 5, color: delta > 0 ? biya.credit : biya.muted }}>
+                  <ArrowUpIcon
+                    size={11}
+                    color={delta > 0 ? biya.credit : biya.muted}
+                  />
+                  ₦{formatNgn(Math.abs(delta), false)} {delta > 0 ? "above" : "below"} yesterday
+                </span>
+              )}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div style={{ padding: "26px 20px 0" }}>
         <SectionHead action={today.length ? "See all" : undefined} onAction={onViewAll}>Customers today</SectionHead>
         {today.length === 0 ? (
           <Card>
@@ -267,7 +323,7 @@ function BusinessHome({
         ) : (
           <Card>
             {today.map((row, i) => (
-              <CustomerLine key={row.id} row={row} last={i === today.length - 1} />
+              <CustomerLine key={row.id} row={row} fx={fx} last={i === today.length - 1} />
             ))}
           </Card>
         )}
@@ -276,18 +332,51 @@ function BusinessHome({
   );
 }
 
-function CustomerLine({ row, last }: { row: ActivityRow; last: boolean }) {
+/**
+ * Seven days of takings, oldest on the left. Bars are relative to the best day
+ * in the window, so the shape is honest even when every day is small, and the
+ * last bar is today's, which is the one being read.
+ */
+function WeekBars({ values }: { values: number[] }) {
+  const peak = Math.max(...values, 1);
+  return (
+    <div className="flex items-end" style={{ gap: 5, height: 44, marginTop: 16 }}>
+      {values.map((v, i) => (
+        <div
+          key={i}
+          style={{
+            flex: 1,
+            // A day with nothing in it still gets a sliver, so seven days read
+            // as seven days rather than as a gap in the record.
+            height: `${Math.max((v / peak) * 100, 4)}%`,
+            borderRadius: 3,
+            backgroundColor: i === values.length - 1 && v > 0 ? biya.credit : "#E6E8EC",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CustomerLine({ row, fx, last }: { row: ActivityRow; fx: FxSnapshot | null; last: boolean }) {
   const name = row.counterparty ?? "Payment received";
   return (
-    <div className="flex items-center" style={{ gap: 12, padding: "13px 14px", borderBottom: last ? "none" : `1px solid ${biya.hairline}` }}>
-      <Avatar text={initials(name)} size={38} tone="credit" />
+    <div className="flex items-center" style={{ gap: 12, padding: "14px 16px", borderBottom: last ? "none" : `1px solid ${biya.hairline}` }}>
+      <Avatar text={initials(name)} size={38} tone={row.kind === "payment" ? "credit" : "neutral"} />
       <div className="flex-1 min-w-0">
         <div className="truncate" style={{ ...type.rowSm, color: biya.ink }}>{name}</div>
-        <div style={{ ...type.bodySm, color: biya.faint, marginTop: 2 }}>
-          {clockTime(row.createdAt)} · {row.memo ? row.memo : "Code"}
+        <div className="truncate" style={{ ...type.bodySm, color: biya.faint, marginTop: 3 }}>
+          {clockTime(row.createdAt)} · {row.memo || describe(row.kind)}
         </div>
       </div>
-      <div style={{ ...type.rowSm, color: biya.credit }}>+₦{formatNgn(row.ngnMinor)}</div>
+      <div className="text-right shrink-0" style={{ paddingLeft: 8 }}>
+        <div style={{ ...type.rowSm, color: biya.credit }}>+₦{formatNgn(row.ngnMinor)}</div>
+        {fx && (
+          <div style={{ fontFamily: font.mono, fontSize: 10, color: biya.faint, marginTop: 2 }}>
+            ${formatUsd(dollarValue(row.ngnMinor, fx))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -310,17 +399,37 @@ function Screenful({ chip, children }: { chip: ReactNode; children: ReactNode })
   );
 }
 
-function QuietAction({ label, onClick }: { label: string; onClick: () => void }) {
+function QuietAction({ label, onClick, icon }: { label: string; onClick: () => void; icon?: ReactNode }) {
   return (
     <button
       onClick={onClick}
       className="flex-1 flex items-center justify-center transition-transform active:scale-[0.97]"
       style={{
-        height: 44, borderRadius: 12, backgroundColor: biya.surface,
-        border: `1px solid ${biya.line}`,
-        fontFamily: font.sans, fontWeight: 600, fontSize: 13.5, color: biya.ink,
+        gap: 8, minHeight: icon ? 46 : 44, height: icon ? undefined : 44,
+        borderRadius: 13, backgroundColor: biya.surface,
+        border: `1px solid ${biya.lineStrong}`,
+        fontFamily: font.sans, fontWeight: 600, fontSize: icon ? 14 : 13.5, color: biya.ink,
       }}
     >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+/** The one filled action on business home. Ink, not indigo: indigo is reserved
+ *  for moving money to someone else, and this moves it to yourself. */
+function SolidAction({ label, onClick, icon }: { label: string; onClick: () => void; icon?: ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex-1 flex items-center justify-center transition-transform active:scale-[0.97]"
+      style={{
+        gap: 8, minHeight: 46, borderRadius: 13, backgroundColor: biya.ink,
+        fontFamily: font.sans, fontWeight: 600, fontSize: 14, color: "#fff",
+      }}
+    >
+      {icon}
       {label}
     </button>
   );
@@ -426,6 +535,9 @@ function describe(kind: string): string {
   if (kind === "mandate_run") return "Scheduled payment";
   if (kind === "test_credit" || kind === "usdt_deposit") return "Added";
   if (kind === "goal_release") return "From savings";
+  if (kind === "ngn_in") return "Bank transfer";
+  if (kind === "cleva_in") return "Cleva";
+  if (kind === "bank_payout") return "To your bank";
   return "Transaction";
 }
 
@@ -455,4 +567,34 @@ function groupByDay(rows: ActivityRow[]): { label: string; rows: ActivityRow[] }
 function nairaValue(usdMinor: number, fx: FxSnapshot | null): number {
   if (!fx) return 0;
   return Math.round(usdMinor * fx.effectiveRate);
+}
+
+/** The other direction. Business takings arrive in naira and are read in both. */
+function dollarValue(ngnMinor: number, fx: FxSnapshot | null): number {
+  if (!fx || !fx.effectiveRate) return 0;
+  return Math.round(ngnMinor / fx.effectiveRate);
+}
+
+/**
+ * Money in, per day, for the last `days` days, oldest first. The last entry is
+ * today. Days with no takings are zeroes rather than missing, because the
+ * chart is a calendar, not a list of the days that happened to have sales.
+ */
+function dailyTotals(rows: ActivityRow[], days: number): number[] {
+  const start = startOfToday();
+  const out = new Array<number>(days).fill(0);
+  for (const r of rows) {
+    if (r.ngnMinor <= 0) continue;
+    // 0 is today, 1 is yesterday. Anything older than the window is ignored.
+    const back = Math.floor((start - startOfDay(r.createdAt)) / DAY);
+    if (back < 0 || back >= days) continue;
+    out[days - 1 - back] += r.ngnMinor;
+  }
+  return out;
+}
+
+function startOfDay(ts: number): number {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
 }

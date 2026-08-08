@@ -24,6 +24,18 @@
 import { getOrCreateAddress } from "../wallet";
 import { type FundingRail, type RailQuote, type RailStatus } from "./types";
 
+/**
+ * The one chain this rail accepts, named here rather than in the screen so the
+ * deposit instructions and the Phase 9 watcher cannot drift apart. The address
+ * itself is a plain EVM address and is valid on every EVM chain; this is the
+ * chain Biya will watch, which is a different claim and the one users need.
+ */
+export const usdtDeposit = {
+  network: "Base",
+  token: "USDT",
+  standard: "ERC-20",
+} as const;
+
 export const usdtRail: FundingRail = {
   id: "usdt",
   name: "Stablecoin",

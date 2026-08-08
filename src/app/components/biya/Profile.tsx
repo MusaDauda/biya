@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { biya, font, formatUsd, initials, radius, relativeTime, type } from "./theme";
 import { Avatar, Card, Eyebrow, PrimaryButton, StatusPill } from "./primitives";
-import { ChevronRight } from "./icons";
+import {
+  BellIcon, ChevronRight, GoalIcon, HelpIcon, ScheduledIcon, ShieldIcon, StoreIcon, WalletIcon,
+} from "./icons";
 import {
   createBusinessAccount, listAgentActions, personName,
   type AgentAction, type Balances, type BusinessAccount, type Me,
@@ -79,9 +81,9 @@ export function Profile({
         <div style={{ marginTop: 20 }}>
           <Eyebrow>Money</Eyebrow>
           <Card style={{ marginTop: 9 }}>
-            <Row label="Add money" onClick={onAddMoney} />
-            <Row label="Savings goal" onClick={onGoal} />
-            <Row label="Scheduled payments" onClick={onScheduled} last />
+            <Row label="Add money" onClick={onAddMoney} icon={WalletIcon} />
+            <Row label="Savings goal" onClick={onGoal} icon={GoalIcon} />
+            <Row label="Scheduled payments" onClick={onScheduled} icon={ScheduledIcon} last />
           </Card>
         </div>
 
@@ -119,7 +121,7 @@ export function Profile({
                 </div>
               </div>
             ) : (
-              <Row label={businesses.length ? "Add another business" : "Sell something? Add a business"} onClick={() => setAdding(true)} last />
+              <Row label={businesses.length ? "Add another business" : "Sell something? Add a business"} onClick={() => setAdding(true)} icon={StoreIcon} last />
             )}
           </Card>
         </div>
@@ -159,9 +161,9 @@ export function Profile({
         <div style={{ marginTop: 20 }}>
           <Eyebrow>Account</Eyebrow>
           <Card style={{ marginTop: 9 }}>
-            <Row label="Security" onClick={() => toast("Security settings are coming.")} />
-            <Row label="Notifications" onClick={() => toast("Notification settings are coming.")} />
-            <Row label="Help" onClick={() => toast("Support is coming.")} last />
+            <Row label="Security" onClick={() => toast("Security settings are coming.")} icon={ShieldIcon} />
+            <Row label="Notifications" onClick={() => toast("Notification settings are coming.")} icon={BellIcon} />
+            <Row label="Help" onClick={() => toast("Support is coming.")} icon={HelpIcon} last />
           </Card>
         </div>
 
@@ -181,13 +183,33 @@ export function Profile({
   );
 }
 
-function Row({ label, onClick, last }: { label: string; onClick: () => void; last?: boolean }) {
+/**
+ * The leading icon is optional so a row without a sensible one stays honest
+ * rather than reaching for a vague glyph to fill the slot. The label keeps its
+ * alignment either way, because the icon sits in a fixed width box.
+ */
+function Row({
+  label,
+  onClick,
+  last,
+  icon: Icon,
+}: {
+  label: string;
+  onClick: () => void;
+  last?: boolean;
+  icon?: (p: { size?: number; color?: string }) => JSX.Element;
+}) {
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center text-left transition-opacity active:opacity-70"
-      style={{ gap: 10, padding: "14px 14px", borderBottom: last ? "none" : `1px solid ${biya.hairline}` }}
+      style={{ gap: 12, padding: "14px 14px", borderBottom: last ? "none" : `1px solid ${biya.hairline}` }}
     >
+      {Icon && (
+        <span className="flex items-center justify-center shrink-0" style={{ width: 22 }}>
+          <Icon size={20} color={biya.muted} />
+        </span>
+      )}
       <span className="flex-1" style={{ ...type.rowSm, color: biya.ink }}>{label}</span>
       <ChevronRight />
     </button>

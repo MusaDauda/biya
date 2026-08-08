@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { biya, brand, font, formatUsd, radius, type } from "./theme";
 import {
   BiyaIcon, Card, Eyebrow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusPill,
 } from "./primitives";
-import { AlertIcon, CheckIcon, ChevronRight, CopyIcon } from "./icons";
-import { payoutRails, sortedFundingRails, type FundingRail, type RailStatus } from "../../../lib/rails";
+import {
+  AlertIcon, BanknoteIcon, BuildingIcon, CheckIcon, ChevronRight, CoinsIcon, CopyIcon,
+  DropletIcon, LandmarkIcon, WalletIcon,
+} from "./icons";
+import { payoutRails, sortedFundingRails, usdtDeposit, type FundingRail, type RailStatus } from "../../../lib/rails";
 import { getVirtualAccount } from "../../../lib/virtualAccount";
 import { getOrCreateAddress } from "../../../lib/wallet";
 import { nameOf, type Me } from "../../../lib/api";
@@ -58,8 +61,28 @@ export function AddMoney({ user, onBack, onFunded }: {
   );
 }
 
+/**
+ * Every rail has carried an `icon` name since the interface was written, and
+ * nothing ever read it: the row drew the first letter of the rail's name
+ * instead, so Stablecoin was an "S" and Cleva was a "C". This is that field
+ * finally resolving to artwork.
+ *
+ * Keyed on the rail's own strings rather than renaming them, so adding a rail
+ * stays a change in src/lib/rails and nowhere else. An unknown name falls back
+ * to the wallet rather than throwing, because a missing icon should not be able
+ * to take out the Add money screen.
+ */
+const RAIL_ICONS: Record<string, (p: { size?: number; color?: string }) => JSX.Element> = {
+  Droplets: DropletIcon,
+  Coins: CoinsIcon,
+  Landmark: LandmarkIcon,
+  Building2: BuildingIcon,
+  Banknote: BanknoteIcon,
+};
+
 function RailRow({ rail, last, onClick }: { rail: FundingRail; last: boolean; onClick: () => void }) {
   const live = rail.isConfigured();
+  const Icon = RAIL_ICONS[rail.icon] ?? WalletIcon;
   return (
     <button
       onClick={onClick}
@@ -70,9 +93,7 @@ function RailRow({ rail, last, onClick }: { rail: FundingRail; last: boolean; on
         className="flex items-center justify-center shrink-0"
         style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: live ? biya.actionWashSoft : biya.ground }}
       >
-        <span style={{ fontFamily: font.sans, fontWeight: 700, fontSize: 14, color: live ? biya.action : biya.faint }}>
-          {rail.name.charAt(0)}
-        </span>
+        <Icon size={20} color={live ? biya.action : biya.faint} />
       </span>
       <span className="flex-1 min-w-0">
         <span className="block truncate" style={{ ...type.rowSm, color: biya.ink }}>{rail.name}</span>
@@ -91,6 +112,25 @@ function RailDetail({ rail, user, onBack, onExit, onFunded }: {
   const [amount, setAmount] = useState(PRESETS[0]);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<RailStatus | null>(null);
+
+  // The deposit address is fetched, not computed, so it cannot be read during
+  // render. Everything below this point may return early, so the hook stays up
+  // here and decides for itself whether this rail wants an address.
+  const [address, setAddress] = useState<string | null>(null);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (rail.id !== "usdt") return;
+    let cancelled = false;
+    setAddressError(null);
+    getOrCreateAddress(user.id)
+      .then((a) => { if (!cancelled) setAddress(a); })
+      .catch((err) => {
+        if (cancelled) return;
+        setAddressError(err instanceof Error ? err.message : "Could not get a deposit address.");
+      });
+    return () => { cancelled = true; };
+  }, [rail.id, user.id]);
 
   if (!rail.isConfigured()) {
     return (
@@ -132,7 +172,29 @@ function RailDetail({ rail, user, onBack, onExit, onFunded }: {
 
   // Stablecoin: a destination address.
   if (rail.id === "usdt") {
-    const address = getOrCreateAddress();
+    if (addressError || !address) {
+      return (
+        <Screen>
+          <ScreenHeader title={rail.name} onBack={onBack} />
+          <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ padding: "0 32px" }}>
+            {addressError ? (
+              <>
+                <AlertIcon size={26} color={biya.faint} />
+                <p style={{ ...type.row, fontSize: 16, color: biya.ink, marginTop: 14 }}>No address yet</p>
+                <p style={{ ...type.body, color: biya.faint, marginTop: 8 }}>{addressError}</p>
+              </>
+            ) : (
+              <p style={{ ...type.body, color: biya.faint }}>Getting your address...</p>
+            )}
+          </div>
+          {addressError && (
+            <div style={{ padding: "12px 20px", paddingBottom: "max(16px, var(--safe-bottom, 0px))" }}>
+              <SecondaryButton onClick={onBack}>Go back</SecondaryButton>
+            </div>
+          )}
+        </Screen>
+      );
+    }
     return (
       <Screen>
         <ScreenHeader title={rail.name} onBack={onBack} />
@@ -140,7 +202,8 @@ function RailDetail({ rail, user, onBack, onExit, onFunded }: {
           <div className="flex" style={{ gap: 9, alignItems: "flex-start", width: "100%" }}>
             <AlertIcon size={17} color={biya.pendingText} />
             <p style={{ ...type.body, color: biya.pendingText, flex: 1 }}>
-              Send only on the network shown below. Anything sent on another network cannot be recovered.
+              Send only <strong style={{ fontWeight: 700 }}>{usdtDeposit.token} on {usdtDeposit.network}</strong> to
+              this address. Anything sent on another network cannot be recovered.
             </p>
           </div>
 
@@ -164,6 +227,19 @@ function RailDetail({ rail, user, onBack, onExit, onFunded }: {
               >
                 {address}
               </p>
+            </div>
+
+            {/* The network belongs next to the address, not only in the warning
+                above it: this is the line someone checks against their wallet. */}
+            <div className="flex items-center justify-between" style={{ padding: "13px 16px", borderTop: `1px solid ${biya.hairline}` }}>
+              <span style={{ ...type.bodySm, color: biya.faint }}>Network</span>
+              <span style={{ ...type.rowSm, color: biya.ink }}>{usdtDeposit.network}</span>
+            </div>
+            <div className="flex items-center justify-between" style={{ padding: "13px 16px", borderTop: `1px solid ${biya.hairline}` }}>
+              <span style={{ ...type.bodySm, color: biya.faint }}>Token</span>
+              <span style={{ ...type.rowSm, color: biya.ink }}>
+                {usdtDeposit.token} ({usdtDeposit.standard})
+              </span>
             </div>
           </Card>
 
