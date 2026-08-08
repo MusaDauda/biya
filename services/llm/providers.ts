@@ -169,7 +169,11 @@ export function resolveProviders(): ResolvedProvider[] {
     process.env.LLM_PROVIDER ?? (process.env.GROQ_API_KEY ? "groq" : undefined),
     process.env.LLM_MODEL ?? process.env.GROQ_MODEL,
     process.env.LLM_API_KEY,
-    process.env.LLM_BASE_URL,
+    // LLM_BASE_URL is this file's own name for the override. OPENAI_BASE_URL is
+    // accepted too because it is the variable name most OpenAI-compatible
+    // dashboards (TokenRouter included) print on their setup page, and typing
+    // that one in is the easy mistake to make.
+    process.env.LLM_BASE_URL ?? process.env.OPENAI_BASE_URL,
   );
 
   const fallback = resolveOne(
