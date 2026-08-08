@@ -12,8 +12,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { createClient } from "@supabase/supabase-js";
-import { refreshRate, startRatePoller } from "./fx.ts";
-import { aiRoutes } from "./ai.ts";
+import { refreshRate, startRatePoller } from "./fx";
+import { aiRoutes } from "./ai";
 
 const REQUIRED = ["SUPABASE_URL", "SUPABASE_SECRET_KEY"] as const;
 const missing = REQUIRED.filter((k) => !process.env[k]);

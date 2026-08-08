@@ -10,8 +10,8 @@ import OpenAI from "openai";
 import {
   type ChatRequest, type ChatResult, type LLMClient, type ToolCall,
   LLMUnavailableError,
-} from "./types.ts";
-import { type ResolvedProvider, resolveProviders, describeProviders } from "./providers.ts";
+} from "./types";
+import { type ResolvedProvider, resolveProviders, describeProviders } from "./providers";
 
 /** Tolerant argument parsing. A model that emits slightly broken JSON is normal. */
 function parseArguments(raw: unknown): Record<string, unknown> {

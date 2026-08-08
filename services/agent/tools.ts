@@ -11,7 +11,7 @@
 // question that has anywhere to land.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ToolDef } from "../llm/types.ts";
+import type { ToolDef } from "../llm/types";
 
 /** What authority a tool call ran under. Written to agent_actions verbatim. */
 export type Authority = "read_only" | "user_pin" | `mandate:${string}`;

@@ -5,9 +5,9 @@
 // process called. The provider key never reaches the browser either way.
 
 import type { IncomingMessage, ServerResponse } from "http";
-import { adminDb } from "../_db.ts";
-import { runAgent } from "../../services/agent/loop.ts";
-import { LLMUnavailableError } from "../../services/llm/types.ts";
+import { adminDb } from "../_db";
+import { runAgent } from "../../services/agent/loop";
+import { LLMUnavailableError } from "../../services/llm/types";
 
 type Req = IncomingMessage & { body?: any; method?: string };
 

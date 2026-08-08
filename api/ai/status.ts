@@ -5,8 +5,8 @@
 // with no server to keep alive.
 
 import type { IncomingMessage, ServerResponse } from "http";
-import { getLLM } from "../../services/llm/client.ts";
-import { TOOLS } from "../../services/agent/tools.ts";
+import { getLLM } from "../../services/llm/client";
+import { TOOLS } from "../../services/agent/tools";
 
 export default async function handler(_req: IncomingMessage, res: ServerResponse) {
   res.setHeader("content-type", "application/json");

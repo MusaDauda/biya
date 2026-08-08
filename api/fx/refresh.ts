@@ -8,7 +8,7 @@
 // hour, not who wrote it.
 
 import type { IncomingMessage, ServerResponse } from "http";
-import { refreshRate } from "../../services/fx.ts";
+import { refreshRate } from "../../services/fx";
 
 export default async function handler(_req: IncomingMessage, res: ServerResponse) {
   res.setHeader("content-type", "application/json");

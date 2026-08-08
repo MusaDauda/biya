@@ -7,12 +7,12 @@
 // going to on the seventh, and a stage demo must fail fast rather than hang.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getLLM } from "../llm/client.ts";
-import { LLMUnavailableError, type ChatMessage } from "../llm/types.ts";
+import { getLLM } from "../llm/client";
+import { LLMUnavailableError, type ChatMessage } from "../llm/types";
 import {
   TOOLS_BY_NAME, ToolArgumentError, authorityFor, toolSchemas, validate,
   type ToolContext,
-} from "./tools.ts";
+} from "./tools";
 
 const MAX_TURNS = 6;
 

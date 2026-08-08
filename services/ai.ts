@@ -7,10 +7,10 @@
 
 import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { runAgent } from "./agent/loop.ts";
-import { TOOLS } from "./agent/tools.ts";
-import { getLLM } from "./llm/client.ts";
-import { LLMUnavailableError } from "./llm/types.ts";
+import { runAgent } from "./agent/loop";
+import { TOOLS } from "./agent/tools";
+import { getLLM } from "./llm/client";
+import { LLMUnavailableError } from "./llm/types";
 
 export function aiRoutes(db: SupabaseClient) {
   const app = new Hono();
