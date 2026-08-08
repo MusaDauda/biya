@@ -431,13 +431,31 @@ export async function listSales(userId: string, limit = 50): Promise<ActivityRow
 export async function findUserByCode(code: string): Promise<Me | null> {
   const digits = code.replace(/\D/g, "");
   if (digits.length !== 10) return null;
-  const { data, error } = await supabase
+
+  // 1. Try personal account
+  const { data: personal } = await supabase
     .from("app_users")
     .select("*")
     .eq("receive_code", digits)
     .maybeSingle();
-  if (error || !data) return null;
-  return data as Me;
+  if (personal) return personal as Me;
+
+  // 2. Try business account — return the owner's profile with business name
+  const { data: biz } = await supabase
+    .from("business_accounts")
+    .select("owner_id, name")
+    .eq("receive_code", digits)
+    .maybeSingle();
+  if (!biz) return null;
+
+  const { data: owner } = await supabase
+    .from("app_users")
+    .select("*")
+    .eq("id", biz.owner_id)
+    .single();
+  if (!owner) return null;
+
+  return { ...owner, business_name: biz.name } as Me;
 }
 
 export async function creditTestFunds(userId: string, usdMinor: number): Promise<void> {
