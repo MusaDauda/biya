@@ -7,7 +7,7 @@ import { biya, brand, clockTime, font, formatNgn, formatRate, formatUsd, initial
 import { Avatar, BiyaIcon, Card, Eyebrow, Field, PrimaryButton, Screen, ScreenHeader, Segmented } from "./primitives";
 import { AlertIcon, ChevronRight, CopyIcon, GalleryIcon, ShareIcon, TorchIcon } from "./icons";
 import {
-  findUserByCode, findByTag, nameOf, personName, resolveAccount,
+  findUserByCode, findByTag, findByPhone, getMe, nameOf, personName, resolveAccount,
   type ActivityRow, type FxSnapshot, type Me,
 } from "../../../lib/api";
 
@@ -328,7 +328,7 @@ function TransferMode({
   // without the person having to press anything.
   useEffect(() => {
     const digits = value.replace(/\D/g, "");
-    if (route === "tag" || digits.length !== 10) { setResolved(null); return; }
+    if (route !== "bank" || digits.length !== 10) { setResolved(null); return; }
     let cancelled = false;
     (async () => {
       const r = await resolveAccount(digits);
@@ -350,7 +350,13 @@ function TransferMode({
       if (route === "tag") {
         const r = await findByTag(value.replace(/^@/, ""));
         if (!r.found) { setError(r.reason); return; }
-        const payee = await findUserByCode(r.receiveCode ?? "");
+        const payee = await getMe(r.userId);
+        if (payee) { onFound(payee); return; }
+      }
+      if (route === "phone") {
+        const r = await findByPhone(value);
+        if (!r.found) { setError(r.reason); return; }
+        const payee = await getMe(r.userId);
         if (payee) { onFound(payee); return; }
       }
       setError("Could not find that account.");

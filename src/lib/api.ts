@@ -374,6 +374,16 @@ export async function findByTag(tag: string): Promise<Resolved> {
     : { found: false, reason: r.reason };
 }
 
+export async function findByPhone(phone: string): Promise<Resolved> {
+  const { data, error } = await supabase.rpc("find_by_phone", { p_phone: phone });
+  if (error || !data) return { found: false, reason: "Could not check that number." };
+  const r = data as any;
+  return r.found
+    ? { found: true, userId: r.user_id, name: r.name, receiveCode: r.receive_code }
+    : { found: false, reason: r.reason };
+}
+
+
 // ---------------------------------------------------------------------------
 // Money
 // ---------------------------------------------------------------------------
