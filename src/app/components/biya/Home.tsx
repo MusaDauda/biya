@@ -224,7 +224,7 @@ function PersonalHome({
 // ---------------------------------------------------------------------------
 
 function BusinessHome({
-  account, activity, businesses, user, onSwitch, onViewAll,
+  account, activity, balances, businesses, user, onSwitch, onViewAll,
 }: Parameters<typeof Home>[0] & { account: BusinessAccount }) {
   const today = activity.filter((r) => r.ngnMinor > 0 && r.createdAt >= startOfToday());
   const yesterday = activity.filter(
@@ -237,13 +237,13 @@ function BusinessHome({
   return (
     <Screenful chip={<ContextChip label={account.name} mono={initials(account.name)} onClick={() => onSwitch("open")} />}>
       <div style={{ padding: "26px 20px 0" }}>
-        <Eyebrow>Taken today</Eyebrow>
-        <div style={{ fontFamily: font.sans, fontWeight: 700, fontSize: 42, lineHeight: 1, letterSpacing: "-0.035em", color: biya.ink, marginTop: 9 }}>
-          ₦{formatNgn(takenKobo)}
+        <Eyebrow>Business balance</Eyebrow>
+        <div style={{ ...type.balanceLg, color: biya.ink, marginTop: 9 }}>
+          ₦{formatNgn(balances.ngnMinor)}
         </div>
         <div className="flex items-baseline" style={{ gap: 6, marginTop: 9, flexWrap: "wrap" }}>
           <span style={{ fontFamily: font.sans, fontWeight: 600, fontSize: 15, color: biya.inkSoft }}>
-            {today.length} {today.length === 1 ? "payment" : "payments"}
+            {today.length} {today.length === 1 ? "payment today" : "payments today"}
           </span>
           {yesterdayKobo > 0 && (
             <span style={{ ...type.body, color: biya.faint }}>
@@ -251,10 +251,6 @@ function BusinessHome({
             </span>
           )}
         </div>
-      </div>
-
-      <div style={{ padding: "20px 20px 0" }}>
-        <SettlementCard account={account} heldKobo={takenKobo} />
       </div>
 
       <div style={{ padding: "24px 20px 0" }}>
@@ -277,36 +273,6 @@ function BusinessHome({
         )}
       </div>
     </Screenful>
-  );
-}
-
-function SettlementCard({ account, heldKobo }: { account: BusinessAccount; heldKobo: number }) {
-  const until = msUntilHour(account.settleHour);
-  const bank = account.settleBank && account.settleLast4
-    ? `${account.settleBank} ••${account.settleLast4}`
-    : "your bank";
-
-  return (
-    <Card style={{ borderColor: biya.pendingWash }}>
-      <div className="flex items-center justify-between" style={{ padding: "14px 16px", borderBottom: `1px solid ${biya.hairline}` }}>
-        <span style={{ ...type.body, fontSize: 13.5, color: biya.pendingText }}>Settling to {bank}</span>
-        <span style={{ fontFamily: font.mono, fontSize: 11.5, fontWeight: 700, color: biya.pendingText }}>
-          {countdownLabel(until)}
-        </span>
-      </div>
-      <div className="flex items-center justify-between" style={{ padding: "14px 16px" }}>
-        <div>
-          <Eyebrow>Held for tonight</Eyebrow>
-          <div style={{ ...type.row, fontSize: 16, color: biya.ink, marginTop: 5 }}>₦{formatNgn(heldKobo)}</div>
-        </div>
-        <div className="text-right">
-          <Eyebrow>Payout at</Eyebrow>
-          <div style={{ fontFamily: font.mono, fontSize: 13, color: biya.inkSoft, marginTop: 6 }}>
-            {String(account.settleHour).padStart(2, "0")}:00 today
-          </div>
-        </div>
-      </div>
-    </Card>
   );
 }
 
@@ -489,19 +455,4 @@ function groupByDay(rows: ActivityRow[]): { label: string; rows: ActivityRow[] }
 function nairaValue(usdMinor: number, fx: FxSnapshot | null): number {
   if (!fx) return 0;
   return Math.round(usdMinor * fx.effectiveRate);
-}
-
-function msUntilHour(hour: number): number {
-  const now = new Date();
-  const target = new Date();
-  target.setHours(hour, 0, 0, 0);
-  if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
-  return target.getTime() - now.getTime();
-}
-
-function countdownLabel(ms: number): string {
-  const mins = Math.floor(ms / 60000);
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return h > 0 ? `In ${h}h ${m}m` : `In ${m}m`;
 }
