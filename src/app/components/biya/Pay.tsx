@@ -417,7 +417,7 @@ function TransferMode({
       </div>
 
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 72, padding: "0 20px 12px" }}>
-        <PrimaryButton onClick={go} disabled={busy || (!resolved && value.replace(/[@\D]/g, "").length < 3)}>
+        <PrimaryButton onClick={go} disabled={busy || (!resolved && (route === "tag" ? value.replace(/^@/, "").length < 3 : value.replace(/\D/g, "").length < 3))}>
           {busy ? "Checking..." : "Continue"}
         </PrimaryButton>
       </div>
